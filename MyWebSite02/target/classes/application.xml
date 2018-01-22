@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:jpa="http://www.springframework.org/schema/data/jpa" 
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+			http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+           http://www.springframework.org/schema/context 
+           http://www.springframework.org/schema/context/spring-context-4.0.xsd
+           http://www.springframework.org/schema/aop 
+           http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+           http://www.springframework.org/schema/tx 
+           http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+           http://www.springframework.org/schema/data/jpa 
+           http://www.springframework.org/schema/data/jpa/spring-jpa-1.2.xsd">
+      
+    <!-- 加载配置属性文件 -->
+	<context:property-placeholder ignore-unresolvable="true" location="classpath:jdbc.properties" />
+    <!-- 启用元数据配置AOP -->
+   	<aop:aspectj-autoproxy />    
+    <!-- 自动扫描 -->
+   	<context:annotation-config/>    
+   	<!-- 扫描包路径 -->
+    <context:component-scan base-package="com.demo">
+    	<!-- controller扫描交给mvc扫描 -->
+    	<context:exclude-filter type="annotation" 
+    		expression="org.springframework.stereotype.Controller"/> 
+    </context:component-scan> 
+	         
+    <!--配置h2数据源-->
+    <!-- <bean id="dataSource" class="org.h2.jdbcx.JdbcConnectionPool" destroy-method="dispose">
+    	<constructor-arg>
+    		<bean class="org.h2.jdbcx.JdbcDataSource">
+    			文件模式 "~"这个符号代表的就是当前登录到操作系统的用户对应的用户目录
+    			<property name="URL" value="jdbc:h2:~/testdb"/>
+    			用户名密码
+    			<property name="user" value="sa" />
+    			<property name="password" value="sa" />
+    		</bean>
+    	</constructor-arg>
+    </bean> -->
+    
+     <!-- 配置c3p0数据源 -->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+    	<property name="jdbcUrl" value="${jdbc.url}" />
+        <property name="driverClass" value="${jdbc.driver}" />
+        <property name="user" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+        <!-- 其他全部使用默认 -->
+    </bean>
+    <bean id="persistenceProvider"  
+          class="org.hibernate.ejb.HibernatePersistence"/> 
+          
+    <bean id="jpaVendorAdapter" 
+    	class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">  
+        <property name="database" value="${jpa.database}"/>  
+    </bean>       
+    
+    <bean id="jpaDialect" class="org.springframework.orm.jpa.vendor.HibernateJpaDialect"/>
+          
+    <!-- spring jpa 配置 -->     
+   	<bean id="entityManagerFactory" 
+   		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource"/><!--数据源-->  
+   		<property name="persistenceProvider" ref="persistenceProvider"/><!--持久层提供者--> 
+        <property name="jpaVendorAdapter" ref="jpaVendorAdapter"/><!--适配器-->  
+        <property name="jpaDialect" ref="jpaDialect"/> 
+        <property name="jpaProperties">  
+            <props>  
+                <prop key="hibernate.dialect">${hibernate.dialect}</prop>  
+                <prop key="hibernate.hbm2ddl.auto">update</prop>  
+                <prop key="hibernate.show_sql">${hibernate.show_sql}</prop>  
+                <prop key="hibernate.format_sql">${hibernate.format_sql}</prop>
+                <prop key="hibernate.ejb.naming_strategy">${hibernate.ejb.naming_strategy}</prop>  
+            </props>  
+        </property>  
+        <property name="packagesToScan">  
+            <list>  
+                <value>com.demo.entity</value>  
+            </list>  
+        </property> 
+   	</bean>
+   	
+    <!-- jpa仓库 -->
+    <jpa:repositories base-package="com.demo.dao"  
+                      entity-manager-factory-ref="entityManagerFactory"  
+                      transaction-manager-ref="transactionManager"/>  
+ 
+   	<!-- 配置事物管理器 -->  
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">  
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>  
+    </bean>
+   	
+   	<!-- 加密算法 -->
+   	<bean id="encoder" 
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"> 
+		<constructor-arg>
+			<value>8</value>
+		</constructor-arg>
+	</bean>
+	 
+</beans>
